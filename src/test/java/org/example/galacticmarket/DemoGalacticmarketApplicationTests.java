@@ -1,4 +1,4 @@
-package com.galacticmarket.demo_galacticmarket;
+package org.example.galacticmarket;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
