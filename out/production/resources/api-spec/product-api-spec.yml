@@ -1,0 +1,189 @@
+openapi: 3.0.0
+info:
+  title: Product API
+  description: API for managing galactic products
+  version: 1.0.0
+
+paths:
+  /api/v1/products:
+    get:
+      summary: Get all products with mocks
+      tags:
+        - Galactic products
+      responses:
+        '200':
+          description: List of all galactic products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetailsListDto'
+    post:
+      summary: Create a new product
+      tags:
+        - Galactic products
+      requestBody:
+        description: Product data to create a new product
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductDetailsDto'
+      responses:
+        '200':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetailsDto'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/products/{id}:
+    get:
+      summary: Get product by ID
+      tags:
+        - Galactic products
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the product to retrieve
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetailsDto'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ProductDetailsDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the product
+        name:
+          type: string
+          minLength: 4
+          maxLength: 40
+          description: Name of the product
+        price:
+          type: number
+          format: float
+          minimum: 0.001
+          description: Price of the product
+        categoryId:
+          type: integer
+          description: Category ID of the product
+        description:
+          type: string
+          maxLength: 255
+          description: Description of the product
+        galaxyOrigin:
+          type: string
+          description: Galaxy where the product originated
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp of the product
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp of the product
+
+    ProductDetailsListDto:
+      type: object
+      properties:
+        productDetailsEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductDetailsEntry'
+
+    ProductDetailsEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the product
+        name:
+          type: string
+          minLength: 4
+          maxLength: 40
+          description: Name of the product
+        price:
+          type: number
+          format: float
+          minimum: 0.001
+          description: Price of the product
+        categoryId:
+          type: integer
+          description: Category ID of the product
+        description:
+          type: string
+          maxLength: 255
+          description: Description of the product
+        galaxyOrigin:
+          type: string
+          description: Galaxy where the product originated
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp of the product
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp of the product
+
+    ValidationError:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "400"
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParamsViolationDetails'
+
+    ErrorResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the error type
+        title:
+          type: string
+          description: A short description of the error
+        status:
+          type: integer
+          description: HTTP status code
+        detail:
+          type: string
+          description: Detailed description of the error
+
+    ParamsViolationDetails:
+      type: object
+      properties:
+        fieldName:
+          type: string
+          description: Field where validation error occurred
+        reason:
+          type: string
+          description: Reason for the validation error
