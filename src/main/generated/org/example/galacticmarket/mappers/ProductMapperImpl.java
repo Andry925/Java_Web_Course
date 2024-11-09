@@ -5,12 +5,14 @@ import java.util.List;
 import javax.annotation.processing.Generated;
 import org.example.galacticmarket.domain.Product;
 import org.example.galacticmarket.dto.ProductDTO;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2024-11-08T16:59:15+0200",
+    date = "2024-11-09T11:03:03+0200",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.13 (Amazon.com Inc.)"
 )
+@Component
 public class ProductMapperImpl implements ProductMapper {
 
     @Override
