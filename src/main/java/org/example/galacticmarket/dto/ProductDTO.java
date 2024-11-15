@@ -7,7 +7,7 @@ import java.util.UUID;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.DecimalMin;
-import org.example.galacticmarket.validation.ProductNameValidator;
+import org.example.galacticmarket.validation.ValidProductName;
 
 @Value
 @Builder(toBuilder = true)
@@ -23,7 +23,7 @@ public class ProductDTO {
 
     @NotNull(message = "Product cannot be empty")
     @Size(min = 4, max = 40, message = "Product name must be between 4 and 40 characters")
-    @ProductNameValidator(prefixes = {"star", "planet", "galaxy", "cosmo"})
+    @ValidProductName(prefixes = {"star", "planet", "galaxy", "cosmo"})
     String name;
 
     @NotNull(message = "Price cannot be less than or equal to zero")

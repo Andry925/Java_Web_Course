@@ -4,12 +4,12 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.util.Arrays;
 
-public class ProductNameValidatorImpl implements ConstraintValidator<ProductNameValidator, String> {
+public class ValidProductNameImpl implements ConstraintValidator<ValidProductName , String> {
 
     private String[] prefixes;
 
     @Override
-    public void initialize(ProductNameValidator constraintAnnotation) {
+    public void initialize(ValidProductName constraintAnnotation) {
         this.prefixes = constraintAnnotation.prefixes();
     }
 

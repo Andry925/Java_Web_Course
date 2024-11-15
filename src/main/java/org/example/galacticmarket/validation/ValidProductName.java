@@ -12,10 +12,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Constraint(validatedBy = ProductNameValidatorImpl.class)
+@Constraint(validatedBy = ValidProductNameImpl.class)
 @Target({ ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ProductNameValidator {
+public @interface ValidProductName {
     String message() default "Product name must start with one of the prefixes";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
