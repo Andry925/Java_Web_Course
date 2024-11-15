@@ -1,37 +1,41 @@
 package org.example.galacticmarket.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.galacticmarket.dto.ProductDTO;
 import org.example.galacticmarket.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@ExtendWith(SpringExtension.class)
+@WebMvcTest(ProductController.class)
 class ProductControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private ProductService productService;
 
-    @InjectMocks
-    private ProductController productController;
-
+    private ObjectMapper objectMapper;
     private ProductDTO mockProduct;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        objectMapper = new ObjectMapper();
 
         mockProduct = ProductDTO.builder()
                 .id(UUID.randomUUID())
@@ -44,94 +48,104 @@ class ProductControllerTest {
     }
 
     @Test
-    void getAllProducts() {
+    void getAllProducts() throws Exception {
         when(productService.getAllProducts()).thenReturn(Collections.singletonList(mockProduct));
 
-        ResponseEntity<List<ProductDTO>> response = productController.getAllProducts();
+        mockMvc.perform(get("http://127.0.0.1:8080/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("cosmo milk"));
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1, response.getBody().size());
         verify(productService, times(1)).getAllProducts();
     }
 
     @Test
-    void getProductById() {
+    void getProductById() throws Exception {
         UUID productId = mockProduct.getId();
         when(productService.getProductById(productId)).thenReturn(mockProduct);
 
-        ResponseEntity<ProductDTO> response = productController.getProductById(productId);
+        mockMvc.perform(get("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("cosmo milk"));
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockProduct, response.getBody());
         verify(productService, times(1)).getProductById(productId);
     }
 
     @Test
-    void getProductByNonExistingId() {
+    void getProductByNonExistingId() throws Exception {
         UUID productId = UUID.randomUUID();
         when(productService.getProductById(productId)).thenReturn(null);
 
-        ResponseEntity<ProductDTO> response = productController.getProductById(productId);
+        mockMvc.perform(get("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull(response.getBody());
         verify(productService, times(1)).getProductById(productId);
     }
 
     @Test
-    void createProduct() {
+    void createProduct() throws Exception {
         when(productService.createProduct(any(ProductDTO.class))).thenReturn(mockProduct);
 
-        ResponseEntity<ProductDTO> response = productController.createProduct(mockProduct);
+        mockMvc.perform(post("http://127.0.0.1:8080/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mockProduct)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("cosmo milk"));
 
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(mockProduct, response.getBody());
         verify(productService, times(1)).createProduct(any(ProductDTO.class));
     }
 
     @Test
-    void updateProduct() {
+    void updateProduct() throws Exception {
         UUID productId = mockProduct.getId();
         when(productService.updateProduct(eq(productId), any(ProductDTO.class))).thenReturn(mockProduct);
 
-        ResponseEntity<ProductDTO> response = productController.updateProduct(productId, mockProduct);
+        mockMvc.perform(put("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mockProduct)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("cosmo milk"));
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockProduct, response.getBody());
         verify(productService, times(1)).updateProduct(eq(productId), any(ProductDTO.class));
     }
 
     @Test
-    void update_NonExistingProduct() {
+    void updateNonExistingProduct() throws Exception {
         UUID productId = UUID.randomUUID();
         when(productService.updateProduct(eq(productId), any(ProductDTO.class))).thenReturn(null);
 
-        ResponseEntity<ProductDTO> response = productController.updateProduct(productId, mockProduct);
+        mockMvc.perform(put("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mockProduct)))
+                .andExpect(status().isNotFound());
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull(response.getBody());
         verify(productService, times(1)).updateProduct(eq(productId), any(ProductDTO.class));
     }
 
     @Test
-    void deleteProduct() {
+    void deleteProduct() throws Exception {
         UUID productId = mockProduct.getId();
         when(productService.deleteProduct(productId)).thenReturn(true);
 
-        ResponseEntity<Void> response = productController.deleteProduct(productId);
+        mockMvc.perform(delete("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
 
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         verify(productService, times(1)).deleteProduct(productId);
     }
 
     @Test
-    void deleteNonExistingProduct() {
+    void deleteNonExistingProduct() throws Exception {
         UUID productId = UUID.randomUUID();
         when(productService.deleteProduct(productId)).thenReturn(false);
 
-        ResponseEntity<Void> response = productController.deleteProduct(productId);
+        mockMvc.perform(delete("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         verify(productService, times(1)).deleteProduct(productId);
     }
 }
