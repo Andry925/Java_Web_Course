@@ -12,7 +12,7 @@ Desktop.ini
 $RECYCLE.BIN/
 
 ### Linux ###
-.*
+.gitignore
 !.gitignore
 !.git*
 *~
