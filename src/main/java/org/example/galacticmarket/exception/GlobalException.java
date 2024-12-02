@@ -1,5 +1,7 @@
 package org.example.galacticmarket.exception;
 
+
+import featuretoggle.exceptions.FeatureNotAvailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -41,6 +43,19 @@ public class GlobalException {
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(FeatureNotAvailableException.class)
+    public ResponseEntity<Object> handleFeatureNotAvailableException(
+            FeatureNotAvailableException ex, WebRequest request) {
+
+        Map<String, Object> errorDetails = new HashMap<>();
+        errorDetails.put("status", HttpStatus.NOT_FOUND.value());
+        errorDetails.put("error", "Feature Not Available");
+        errorDetails.put("message", ex.getMessage());
+        errorDetails.put("path", request.getDescription(false).replace("uri=", ""));
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+    }
+
     private String generateErrorMessage(MethodArgumentNotValidException ex) {
         StringBuilder errorMessage = new StringBuilder();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
@@ -53,3 +68,4 @@ public class GlobalException {
         return errorMessage.toString().trim();
     }
 }
+
