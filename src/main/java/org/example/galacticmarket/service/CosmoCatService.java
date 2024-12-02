@@ -1,4 +1,9 @@
 package org.example.galacticmarket.service;
 
-public class CosmoCatService {
+import org.example.galacticmarket.dto.CosmocatDTO;
+
+import java.util.List;
+
+public interface CosmoCatService {
+    List<CosmocatDTO> getCosmoCats();
 }
