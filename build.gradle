@@ -3,6 +3,7 @@ plugins {
     id 'jacoco'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.liquibase.gradle' version '2.1.0'
 }
 
 group = 'com.galacticmarket'
@@ -13,33 +14,52 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
+
 repositories {
     mavenCentral()
 }
 
-tasks.withType(Copy).all { duplicatesStrategy 'exclude' }
-
 dependencies {
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.projectlombok:lombok:1.18.26'
-    annotationProcessor 'org.projectlombok:lombok:1.18.26'
-    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.mapstruct:mapstruct:1.6.2'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
     implementation 'jakarta.validation:jakarta.validation-api:3.1.0'
-    implementation 'org.hibernate.validator:hibernate-validator:8.0.0.Final'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework:spring-aspects:6.0.11'
+
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'org.aspectj:aspectjweaver:1.9.21'
     implementation 'org.aspectj:aspectjrt:1.9.21'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.liquibase:liquibase-core:4.30.0'
+    implementation 'org.postgresql:postgresql:42.7.4'
+
+    testImplementation 'org.testcontainers:postgresql:1.19.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.mockito:mockito-core'
-    implementation 'org.springframework:spring-aspects:6.0.11'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.projectlombok:lombok:1.18.26'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.mockito:mockito-core'
-    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.0'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Copy).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.named('test') {
@@ -54,7 +74,7 @@ tasks.named('jacocoTestReport') {
         html.required = true
     }
 
-    afterEvaluate {
+    doLast {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
                     "org/example/galacticmarket/mappers/*",
@@ -65,4 +85,18 @@ tasks.named('jacocoTestReport') {
             ])
         }))
     }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
