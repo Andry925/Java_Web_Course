@@ -1,151 +1,164 @@
 package org.example.galacticmarket.controllers;
 
+
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.galacticmarket.dto.ProductDTO;
-import org.example.galacticmarket.service.ProductService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.example.galacticmarket.mappers.ProductMapper;
+import org.example.galacticmarket.repository.CategoryRepository;
+import org.example.galacticmarket.repository.ProductRepository;
+import org.example.galacticmarket.repository.entity.CategoryEntity;
+import org.example.galacticmarket.repository.entity.ProductEntity;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.Collections;
 import java.util.UUID;
 
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@WebMvcTest(ProductController.class)
-class ProductControllerTest {
+@SpringBootTest
+@Testcontainers
+@AutoConfigureMockMvc
+class ProductControllerIntegrationTest {
+
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:14.8-alpine3.18")
+            .withDatabaseName("testdb")
+            .withUsername("testuser")
+            .withPassword("testpass")
+            .withEnv("TZ", "UTC");
+
+    @BeforeAll
+    static void startContainer() {
+        postgres.start();
+    }
+
+    @AfterAll
+    static void stopContainer() {
+        postgres.stop();
+    }
+
+    @DynamicPropertySource
+    static void configureTestDatabase(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private ProductService productService;
+    @Autowired
+    private ProductRepository productRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ProductMapper productMapper;
+
+    @Autowired
     private ObjectMapper objectMapper;
-    private ProductDTO mockProduct;
+
+    private CategoryEntity categoryEntity;
 
     @BeforeEach
-    void setUp() {
-        objectMapper = new ObjectMapper();
+    void setup() {
+        productRepository.deleteAll();
+        categoryRepository.deleteAll();
 
-        mockProduct = ProductDTO.builder()
+        categoryEntity = categoryRepository.save(CategoryEntity.builder()
                 .id(UUID.randomUUID())
-                .name("cosmo milk")
-                .price(20)
-                .categoryId(1)
-                .description("high quality milk")
-                .galaxyOrigin("Milky way")
+                .name("Galactic Goods")
+                .build());
+    }
+
+    @Test
+    void testCreateProductValid() throws Exception {
+        ProductDTO validProduct = ProductDTO.builder()
+                .category_id(categoryEntity.getId())
+                .name("Star Juice")
+                .description("Refreshing intergalactic drink.")
+                .galaxyOrigin("Andromeda")
+                .price(12.99f)
                 .build();
-    }
 
-    @Test
-    void getAllProducts() throws Exception {
-        when(productService.getAllProducts()).thenReturn(Collections.singletonList(mockProduct));
-
-        mockMvc.perform(get("http://127.0.0.1:8080/api/v1/products")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("cosmo milk"));
-
-        verify(productService, times(1)).getAllProducts();
-    }
-
-    @Test
-    void getProductById() throws Exception {
-        UUID productId = mockProduct.getId();
-        when(productService.getProductById(productId)).thenReturn(mockProduct);
-
-        mockMvc.perform(get("http://127.0.0.1:8080/api/v1/products/{id}", productId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("cosmo milk"));
-
-        verify(productService, times(1)).getProductById(productId);
-    }
-
-    @Test
-    void getProductByNonExistingId() throws Exception {
-        UUID productId = UUID.randomUUID();
-        when(productService.getProductById(productId)).thenReturn(null);
-
-        mockMvc.perform(get("http://127.0.0.1:8080/api/v1/products/{id}", productId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-
-        verify(productService, times(1)).getProductById(productId);
-    }
-
-    @Test
-    void createProduct() throws Exception {
-        when(productService.createProduct(any(ProductDTO.class))).thenReturn(mockProduct);
-
-        mockMvc.perform(post("http://127.0.0.1:8080/api/v1/products")
+        mockMvc.perform(post("/api/v1/products")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(mockProduct)))
+                        .content(objectMapper.writeValueAsString(validProduct)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("cosmo milk"));
-
-        verify(productService, times(1)).createProduct(any(ProductDTO.class));
+                .andExpect(jsonPath("$.name").value("Star Juice"))
+                .andExpect(jsonPath("$.galaxyOrigin").value("Andromeda"));
     }
 
     @Test
-    void updateProduct() throws Exception {
-        UUID productId = mockProduct.getId();
-        when(productService.updateProduct(eq(productId), any(ProductDTO.class))).thenReturn(mockProduct);
+    void testCreateProductInvalid() throws Exception {
+        ProductDTO invalidProduct = ProductDTO.builder()
+                .category_id(categoryEntity.getId())
+                .name("Juice")
+                .description("")
+                .galaxyOrigin("")
+                .price(-5.0f)
+                .build();
 
-        mockMvc.perform(put("http://127.0.0.1:8080/api/v1/products/{id}", productId)
+        mockMvc.perform(post("/api/v1/products")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(mockProduct)))
+                        .content(objectMapper.writeValueAsString(invalidProduct)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void testGetAllProducts() throws Exception {
+        ProductEntity product1 = productRepository.save(ProductEntity.builder()
+                .id(UUID.randomUUID())
+                .name("Star Juice")
+                .description("Refreshing intergalactic drink.")
+                .galaxyOrigin("Andromeda")
+                .price(12.99f)
+                .category(categoryEntity)
+                .build());
+
+        ProductEntity product2 = productRepository.save(ProductEntity.builder()
+                .id(UUID.randomUUID())
+                .name("Galactic Tea")
+                .description("Relaxing tea from another galaxy.")
+                .galaxyOrigin("Milky Way")
+                .price(9.99f)
+                .category(categoryEntity)
+                .build());
+
+        mockMvc.perform(get("/api/v1/products")
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("cosmo milk"));
-
-        verify(productService, times(1)).updateProduct(eq(productId), any(ProductDTO.class));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value(product1.getName()))
+                .andExpect(jsonPath("$[1].name").value(product2.getName()));
     }
 
     @Test
-    void updateNonExistingProduct() throws Exception {
-        UUID productId = UUID.randomUUID();
-        when(productService.updateProduct(eq(productId), any(ProductDTO.class))).thenReturn(null);
+    void testDeleteProduct() throws Exception {
+        ProductEntity product = productRepository.save(ProductEntity.builder()
+                .id(UUID.randomUUID())
+                .name("Star Juice")
+                .description("Refreshing intergalactic drink.")
+                .galaxyOrigin("Andromeda")
+                .price(12.99f)
+                .category(categoryEntity)
+                .build());
 
-        mockMvc.perform(put("http://127.0.0.1:8080/api/v1/products/{id}", productId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(mockProduct)))
-                .andExpect(status().isNotFound());
-
-        verify(productService, times(1)).updateProduct(eq(productId), any(ProductDTO.class));
-    }
-
-    @Test
-    void deleteProduct() throws Exception {
-        UUID productId = mockProduct.getId();
-        when(productService.deleteProduct(productId)).thenReturn(true);
-
-        mockMvc.perform(delete("http://127.0.0.1:8080/api/v1/products/{id}", productId)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(delete("/api/v1/products/{id}", product.getId()))
                 .andExpect(status().isNoContent());
 
-        verify(productService, times(1)).deleteProduct(productId);
-    }
-
-    @Test
-    void deleteNonExistingProduct() throws Exception {
-        UUID productId = UUID.randomUUID();
-        when(productService.deleteProduct(productId)).thenReturn(false);
-
-        mockMvc.perform(delete("http://127.0.0.1:8080/api/v1/products/{id}", productId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-
-        verify(productService, times(1)).deleteProduct(productId);
+        assertFalse(productRepository.findById(product.getId()).isPresent());
     }
 }

@@ -30,8 +30,7 @@ public class ProductDTO {
     @DecimalMin(value = "0.001", message = PRICE_MINIMUM_MESSAGE)
     float price;
 
-    @NotNull(message = "Category ID cannot be empty")
-    int categoryId;
+    UUID category_id;
 
     String description;
     String galaxyOrigin;

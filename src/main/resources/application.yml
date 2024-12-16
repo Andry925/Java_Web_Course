@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: demo-galacticmarket
+  datasource:
+    url: jdbc:postgresql://postgres:5432/galactic_market
+    username: andrew
+    password: django
+  liquibase:
+    change-log: classpath:liquibase/changelog.yaml
+    enabled: true
+
+application:
+  feature:
+    toggles:
+      cosmoCats: true
+      kittyProducts: false
