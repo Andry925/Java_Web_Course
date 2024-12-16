@@ -1,4 +1,5 @@
 package org.example.galacticmarket.dto;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Value;
 import org.example.galacticmarket.domain.Product;
@@ -12,10 +13,9 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public class OrderDTO {
     UUID id;
-    List<Product> products;
     String customerName;
+    @NotNull(message = "Products cannot be null")
+    List<UUID> products;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
-
-
 }
